@@ -164,7 +164,7 @@ One of the following scopes are required to execute this request:
 
 ### HTTP Request
 
-```json
+```bash
 curl --location --request POST "https://api-dev.corezz.net/api/v1/client/transaction" \
 --header "X-API-KEY: a7da7.123ads7a8d7823" \
 --header "Content-Type: application/json" \
