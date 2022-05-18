@@ -58,8 +58,9 @@ curl --location --request POST 'http://localhost:8080/api/v1/client/transaction'
 --header 'X-API-KEY: zaCELgL.0imfnc8mVLWwsAawjYr4RxAf50DDqtlx'
 ```
 
-## Model 
+## Resources 
 
+JSON objects used to compose a transaction request 
 ### Transaction 
 A transaction is composed by a transaction header and a list of items
 
@@ -120,32 +121,29 @@ Some validation rules:
 | **sku** | String | Identifier of the product in the inventory | no |
 | **reference**| uuid | Customer external identifier for the product | no | 
 | **name** | String | The name of the product | no |
-| **unit** | string | A collection of author resources that represent the authors of the book. |
+| **unit** | string |  |
 | **product_value** | String | The date the operation took place in ISO-8601. This field is mandatory |
 | **source** | String | The source or seller of the product | no |
 | **product_line** | String | the name of the product line for the product | no |
-| **factor_unit** | String | The unit type for the factor. see catalog | no |
+| **factor_unit** | String | The unit type for the factor. see ([catalog](#unit-types-catalog)) | no |
 | **factor_value** | String | Factor value for quantification | no |
-| **product_unit** | String | Product unit size. see catalog. | no |
+| **product_unit** | String | Product unit type. see ([catalog](#unit-types-catalog)). | no |
 
 
 Some validation rules: 
 - Quantity must be greather than 0
 - SKU and Reference are not mandatory but you need at least one of them defined
 - Name is only needed if the SKU/Rereference is not valid (product doesnt exsist)
-- 
-- `opened_at` can be a date in the pasto but cannot be a date in the future
+- Attribute `opened_at` can be a date in the past but cannot be a date in the future
 - At least one transaction item is required on items
 
 
-## Transaction API 
 
+# Create transaction API
 
+Post a transaction into corezero middleware and try to process it. 
 
-# Create transaction
-
-Creates a transaction in corezero API to be processed. 
-This method exectues synchronically so you will get the response of each item immediately after the call. 
+This endpoint exectues the task synchronically so you will get the response of each item immediately after the call. 
 
 ### Prerequisites
 
@@ -155,11 +153,11 @@ One of the following scopes are required to execute this request:
 * Each transaction has a reference id which is unique in the scope of the lot
 
 
-** URL ** : `/api/v1/client/transaction`
+**URL** : `/api/v1/client/transaction`
 
-** METHOD ** : `POST`
+**METHOD** : `POST`
 
-** Auth required ** : YES / API-KEY
+**Auth required** : `Yes / API-KEY`
 
 
 ### HTTP Request
