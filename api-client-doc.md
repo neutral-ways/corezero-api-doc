@@ -39,7 +39,7 @@ based on its product type and other parameters defined by the platform.
 ## How it works 
 
 - the API will try to quantify the transactions provided on a base effort basis
-- in cases where sku/refenrece is not on the system the api will try to create the product
+- in cases where sku/reference is not on the system the api will try to create the product
 - in cases where the product_line is not on the system the api will try to create the product_line
 - in cases where is not possible to categorize a product by product_line or category the operation status will be `pending` 
 
@@ -90,7 +90,7 @@ A transaction is composed by a transaction header and a list of items
 Some validation rules: 
 - The project_id must be an `uuid` v4 value
 - If `project_id` is not provided and more than one projects are open on the account the api will throw an error
-- `opened_at` can be a date in the pasto but cannot be a date in the future
+- `opened_at` can be a date in the past but cannot be a date in the future
 - At least one transaction item is required on items
 
 
@@ -317,6 +317,7 @@ Process error example:
 | more than one open project found |  |
 | more than one open lot found | |
 | no open lot found | |
+| name is required for creating a new product | |
 | tx reference alredy exists| the reference of tx you are trying to create already exsist |
 
 
@@ -334,7 +335,7 @@ Process error example:
 | **km**   | kilometers |
 | **grs**   | grams |
 | **m3**   | cubic meters |
-| **u**   |  |
+| **u**   | units |
 | **kg**   | Kilograms |
 | **t**   | Tones |
 | **fg**   | frigoria |
