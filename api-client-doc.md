@@ -341,3 +341,207 @@ Process error example:
 | **fg**   | frigoria |
 
 
+
+# File upload API 
+
+Using this API endpoints client can upload a CSV file with transaction in a predefined format 
+
+and order the middleware to process the file asynchronically. 
+
+
+## How it works?
+
+The process has 3 steps: 
+
+1. First you create an upload request where you need to pass the filename and the content-type (currently the only supported is `text/csv`)
+
+2. You upload the file to the URL obtained from the step 1 call. You must include the headers returned from step 1. 
+
+3. Once the file is uploaded you tell the API that you want to process the file.
+
+![arch](./seq-diagram-upload.png)
+
+
+
+
+## Step 1: create upload request
+
+
+On this step you will tell the API you want to upload a file
+
+
+**URL** : `/api/v1/client/file`
+
+**METHOD** : `POST`
+
+**Auth required** : `Yes / API-KEY`
+
+
+### HTTP Request
+
+```bash
+curl --location --request POST 'http://localhost:8080/api/v1/client/file' \
+--header 'X-API-KEY: SVIjZXllML1hgEg0pVOQ3pikltoQEvlu' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "content_type": "text/csv",
+    "filename": "sugo-co-january-2021.csv"
+}'
+```
+
+### Request body
+
+| Property | Type | Description |
+|:---------|:-----|:------------|
+| **content_type**   | String | Content type of the file. This field is mandatory. The only supported is `text/csv` |
+| **filename** | String | The name of the file you are uploading. This field is mandatory |
+
+
+### HTTP Response
+
+
+```json
+{
+    "data": {
+        "id": "51c1eb60-fae1-477a-97e9-b914400cc841",
+        "entity": "tx-processor",
+        "entity_id": "862c5e89-df30-48c2-95dc-3abb02d2595f",
+        "filename": "sugo-co-january-2021.csv",
+        "pre_signed_url": "https://files-corezero.s3.us-east-2.amazonaws.com/tx-processor/862c5e89-df30-48c2-95dc-3abb02d2595f/51c1eb60-fae1-477a-97e9-b914400cc841.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVEHI6TFWTYQT42TM%2F20220625%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20220625T142413Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host%3Bx-amz-meta-content-type%3Bx-amz-meta-entity%3Bx-amz-meta-entity-id%3Bx-amz-meta-filename%3Bx-amz-meta-public%3Bx-amz-meta-uploader&x-id=PutObject&X-Amz-Signature=7e58861f2aec3171e0d8155be989f850b07bca3f77610d54c416e4648a9439e8",
+        "headers": {
+            "x-amz-meta-content-type": "text/csv",
+            "x-amz-meta-entity": "tx-processor",
+            "x-amz-meta-entity-id": "862c5e89-df30-48c2-95dc-3abb02d2595f",
+            "x-amz-meta-filename": "sugo-co-january-2021.csv",
+            "x-amz-meta-public": "false",
+            "x-amz-meta-uploader": "api-key"
+        }
+    }
+}
+```
+
+| Property | Type | Description |
+|:---------|:-----|:------------|
+| **id**   | String | Is the id of the file once uploaded (If upload is succesfull)  |
+| **entity**   | String | Internal reference to group the uploaded files |
+| **entity_id** | String | Is the account id related to the file. Its taken from the api-key |
+| **filename** | String | The name of the file you are uploading. |
+| **pre_signed_url** | String | The URL where  you have to Upload the file on the next step. |
+| **headers** | String | List of headers you need to include on the upload request on the next step. |
+
+
+
+
+## Step 2: Upload the file to the storage
+
+
+On this step you will upload the file to the storage. 
+The URL you must is the one returned on the `step 1`. 
+
+**URL** : `{pre-signed-url}`
+
+**METHOD** : `PUT`
+
+**Auth required** : `NO`
+
+
+### HTTP Request
+
+```bash
+curl --location --request PUT 'https://files-corezero.s3.us-east-2.amazonaws.com/tx-processor/e8b93001-d531-4f98-a2c4-8bee079f0ff2/8939dbd0-bc60-4f22-acc7-69a4539c5935.csv?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVEHI6TFWTYQT42TM%2F20220625%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20220625T143424Z&X-Amz-Expires=900&X-Amz-SignedHeaders=host%3Bx-amz-meta-content-type%3Bx-amz-meta-entity%3Bx-amz-meta-entity-id%3Bx-amz-meta-filename%3Bx-amz-meta-public%3Bx-amz-meta-uploader&x-id=PutObject&X-Amz-Signature=2b83c92663c9ba81f7adbcd4427fe09519c995940ee128cb2cbb082aa0424c4a' \
+--header 'x-amz-meta-entity: tx-processor' \
+--header 'x-amz-meta-entity-id: e8b93001-d531-4f98-a2c4-8bee079f0ff2' \
+--header 'x-amz-meta-filename: con-p-malo.csv' \
+--header 'x-amz-meta-uploader: gipshm+test@gmail.com' \
+--header 'x-amz-meta-content-type: text/csv' \
+--header 'x-amz-meta-public: false' \
+--header 'Content-Type: text/csv' \
+--data-binary '@/C:/Users/gipsh/Downloads/sugo-co-january-2021.csv'
+```
+
+
+
+### HTTP Response
+
+The response is only `200` if everything went well.
+
+If something went wrong you will have an error from the server exaplaining the problem. 
+
+Most common issue is a signature error meaning something is worng with headers. 
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+    <Code>SignatureDoesNotMatch</Code>
+    <Message>The request signature we calculated does not match the signature you provided. Check your key and signing method.</Message>
+    <AWSAccessKeyId>AKIAVEHI6TFWTYQT42TM</AWSAccessKeyId>
+</Error>
+```
+
+
+
+## Step 3: process the file
+
+
+On this step you will instruct the middleware to process the uploaded file asynchronically
+
+
+**URL** : `/api/v1/client/process`
+
+**METHOD** : `POST`
+
+**Auth required** : `Yes / API-KEY`
+
+
+### HTTP Request
+
+```bash
+curl --location --request POST 'http://3.21.12.64:8080/api/v1/client/process' \
+--header 'X-API-KEY: SVIjZXllML1hgEg0pVOQ3pikltoQEvlu' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "attachment_id": "ae3a9167-99f3-45e4-bafa-94fef0d3d1aa"
+}'
+```
+
+### Request body
+
+| Property | Type | Description |
+|:---------|:-----|:------------|
+| **attachment_id**   | String | Is the id of the uploaded file. The filed `id` returned on step 1. This field is mandatory. |
+
+
+### HTTP Response
+
+If attachment_id is correct it will respond with:
+
+```json
+{
+    "data": {
+        "id": "86bdd8a4-9de6-4b5f-b399-0620723c60b7",
+        "created_at": "2022-06-25T15:06:38.958072414Z",
+        "updated_at": "2022-06-25T15:06:38.958072414Z",
+        "deleted_at": null,
+        "created_by": "gipshm@gmail.com",
+        "updated_by": "",
+        "account_id": null,
+        "project_id": null,
+        "lot_id": null,
+        "attachment_id": "d6b6930b-af0e-4bd7-9edb-7f649df39642",
+        "status": "created",
+        "error_message": null,
+        "ended_at": null,
+        "operation": "process"
+    }
+}
+```
+
+| Property | Type | Description |
+|:---------|:-----|:------------|
+| **id**   | String | The id of the running job  |
+| **created_by**   | String | The user who created the job or `api-key` |
+| **entity_id** | String | Is the account id related to the file. Its taken from the api-key |
+| **attachment_id** | String | The id of the file used in the process. |
+| **status** | String | The status of the operation. Its going to be `created`. |
+| **operation** | String | The type of the operation. In this case is going to be `process`. |
+
