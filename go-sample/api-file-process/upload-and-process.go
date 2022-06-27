@@ -68,6 +68,8 @@ type ProcessFileResponse struct {
 
 func main() {
 
+	fmt.Println("Upload-and-process / CoreZero (c) 2022 \U0001F9DF")
+
 	args := os.Args[1:]
 	if args != nil && len(args) != 1 {
 		fmt.Println("usage: ./upload <filename>")
@@ -85,7 +87,7 @@ func main() {
 	config := loadConfig()
 
 	fmt.Println("API file upload started")
-	fmt.Println(" - API-KEY is: " + config.ApiKey)
+	fmt.Printf(" - API-KEY is: %s\n", config.ApiKey)
 	fmt.Printf(" - API host : %s\n\n", config.ApiHost)
 
 	fmt.Println("step 1: create upload request")
@@ -94,10 +96,10 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+	fmt.Println(" - attachment_id: " + t.Data.ID)
+	fmt.Println(" - entity_id: " + t.Data.EntityID)
 
 	fmt.Println("step 2: upload file")
-	fmt.Println(" - attachment_id: " + t.Data.ID)
-	fmt.Println(" - entity_id: " + t.Data.Entity)
 
 	err = uploadFile(config, filename, t)
 	if err != nil {
@@ -105,8 +107,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("upload done. waiting 5 secs")
-	time.Sleep(5 * time.Second)
+	fmt.Print(" - upload done. waiting 5 secs")
+	for i := 0; i < 5; i++ {
+		fmt.Print(".")
+		time.Sleep(1 * time.Second)
+	}
+	fmt.Print("\n")
 
 	fmt.Println("step 3: process file")
 	r, err := processFile(config, t.Data.ID)
@@ -115,7 +121,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Job created succesfully")
+	fmt.Println(" - job created succesfully")
 	fmt.Println(" - job id: " + r.Data.ID)
 
 }
@@ -124,13 +130,15 @@ func loadConfig() Config {
 
 	file, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		panic("cannot load config")
+		fmt.Println("cannot load config")
+		os.Exit(1)
 	}
 
 	config := Config{}
 	err = json.Unmarshal([]byte(file), &config)
 	if err != nil {
-		panic("cannot parse config")
+		fmt.Println("cannot parse config")
+		os.Exit(1)
 	}
 
 	return config
