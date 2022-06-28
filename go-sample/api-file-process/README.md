@@ -2,11 +2,21 @@
 
 Uploads a CSV file into corezero and start the processing 
 
-# Config 
+## Build
+
+Run `make` to compile for linux and win
+
+check `bin/` folder for binaries
+
+```bash
+make
+```
+
+## Config 
 
 Update the `config.json` with the API-KEY and the API parameters 
 
-# run
+## Run
 
 Just pass a filename: 
 
@@ -31,4 +41,6 @@ step 3: process file
  - job created succesfully
  - job id: f34e0e49-6a3c-4c5f-822b-a61ebaefdecc
 ```
+
+
 
