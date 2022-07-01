@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 type Config struct {
@@ -66,17 +69,41 @@ type ProcessFileResponse struct {
 	} `json:"data"`
 }
 
+type GetWorkerResponse struct {
+	Data struct {
+		ID           string      `json:"id"`
+		CreatedAt    string      `json:"created_at"`
+		UpdatedAt    string      `json:"updated_at"`
+		DeletedAt    interface{} `json:"deleted_at"`
+		CreatedBy    string      `json:"created_by"`
+		UpdatedBy    string      `json:"updated_by"`
+		AccountID    string      `json:"account_id"`
+		ProjectID    string      `json:"project_id"`
+		LotID        string      `json:"lot_id"`
+		AttachmentID string      `json:"attachment_id"`
+		Status       string      `json:"status"`
+		ErrorMessage string      `json:"error_message"`
+		EndedAt      string      `json:"ended_at"`
+		Operation    string      `json:"operation"`
+		Proccesed    int         `json:"proccesed"`
+		Total        int         `json:"total"`
+	} `json:"data"`
+}
+
 func main() {
 
 	fmt.Println("Upload-and-process / CoreZero (c) 2022 \U0001F9DF")
 
-	args := os.Args[1:]
-	if args != nil && len(args) != 1 {
-		fmt.Println("usage: ./upload <filename>")
+	var filename string
+
+	monitorPtr := flag.Bool("monitor", false, "monitor worker results")
+	flag.StringVar(&filename, "file", "", "file to process (mandatory)")
+	flag.Parse()
+
+	if filename == "" {
+		flag.Usage()
 		os.Exit(1)
 	}
-
-	filename := args[0]
 
 	b, _ := exists(filename)
 	if !b {
@@ -85,6 +112,10 @@ func main() {
 	}
 
 	config := loadConfig()
+
+	if monitorPtr != nil && *monitorPtr {
+		fmt.Println("Monitor is enabled!")
+	}
 
 	fmt.Println("API file upload started")
 	fmt.Printf(" - API-KEY is: %s\n", config.ApiKey)
@@ -121,8 +152,44 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println(" - job created succesfully")
-	fmt.Println(" - job id: " + r.Data.ID)
+	if monitorPtr != nil && *monitorPtr {
+		var bar *progressbar.ProgressBar = nil
+
+		fmt.Println("step 4: monitor worker")
+		running := true
+		for running {
+			tw, err := getWorkerStatus(config, r.Data.ID)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+			switch tw.Data.Status {
+			case "finished":
+				running = false
+				if bar != nil {
+					bar.Set(bar.GetMax())
+				}
+				break
+			case "running":
+				if bar == nil {
+					bar = progressbar.Default(int64(tw.Data.Total))
+				}
+				bar.Set(tw.Data.Proccesed)
+				break
+			case "init":
+			case "created":
+				fmt.Println("waiting for worker to start")
+				break
+			default:
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+
+		fmt.Println("end")
+
+	}
 
 }
 
@@ -267,6 +334,40 @@ func processFile(config Config, attachmentID string) (ProcessFileResponse, error
 	}
 
 	t := ProcessFileResponse{}
+	err = json.Unmarshal(bytes, &t)
+	if err != nil {
+		return t, err
+	}
+
+	return t, nil
+
+}
+
+func getWorkerStatus(config Config, txWorkerID string) (GetWorkerResponse, error) {
+
+	url := fmt.Sprintf("%s://%s:%s/api/v1/client/tx-worker/%s", config.ApiProto, config.ApiHost, config.ApiPort, txWorkerID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return GetWorkerResponse{}, err
+	}
+
+	req.Header.Set("X-API-KEY", config.ApiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return GetWorkerResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return GetWorkerResponse{}, err
+	}
+
+	t := GetWorkerResponse{}
 	err = json.Unmarshal(bytes, &t)
 	if err != nil {
 		return t, err
