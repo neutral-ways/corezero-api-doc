@@ -2,6 +2,10 @@
 
 Uploads a CSV file into corezero and start the processing 
 
+Notes:
+- if you api key is from a holding you must provide an account id with `-account`
+- The econding detection infers the type based on text. Therefor UTF8 with BOM is detected as UTF8
+
 ## Build
 
 Run `make` to compile for linux and win
