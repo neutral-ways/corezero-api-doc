@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gogs/chardet"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -26,6 +27,7 @@ type Config struct {
 type CreateUploadRequest struct {
 	ContentType string `json:"content_type"`
 	Filename    string `json:"filename"`
+	AccountID   string `json:"account_id,omitempty"`
 }
 
 type CreateUploadResponse struct {
@@ -95,9 +97,12 @@ func main() {
 	fmt.Println("Upload-and-process / CoreZero (c) 2022 \U0001F9DF")
 
 	var filename string
+	var accountID string
 
 	monitorPtr := flag.Bool("monitor", false, "monitor worker results")
 	flag.StringVar(&filename, "file", "", "file to process (mandatory)")
+	flag.StringVar(&accountID, "account", "", "account id (optional)")
+
 	flag.Parse()
 
 	if filename == "" {
@@ -118,11 +123,15 @@ func main() {
 	}
 
 	fmt.Println("API file upload started")
+
 	fmt.Printf(" - API-KEY is: %s\n", config.ApiKey)
 	fmt.Printf(" - API host : %s\n\n", config.ApiHost)
 
+	enc, _ := checkFileEncoding(filename)
+	fmt.Printf(" - Infered encoding: [%s]\n", enc)
+
 	fmt.Println("step 1: create upload request")
-	t, err := uploadRequest(config, filename)
+	t, err := uploadRequest(config, filename, accountID)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
@@ -222,11 +231,15 @@ func exists(name string) (bool, error) {
 	return false, err
 }
 
-func uploadRequest(config Config, filename string) (CreateUploadResponse, error) {
+func uploadRequest(config Config, filename string, accountID string) (CreateUploadResponse, error) {
 
 	data := CreateUploadRequest{
 		ContentType: "text/csv",
 		Filename:    filename,
+	}
+
+	if accountID != "" {
+		data.AccountID = accountID
 	}
 
 	payloadBytes, err := json.Marshal(data)
@@ -256,6 +269,10 @@ func uploadRequest(config Config, filename string) (CreateUploadResponse, error)
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return CreateUploadResponse{}, err
+	}
+
+	if resp.StatusCode != 200 {
+		return CreateUploadResponse{}, errors.New(string(bytes))
 	}
 
 	t := CreateUploadResponse{}
@@ -374,5 +391,32 @@ func getWorkerStatus(config Config, txWorkerID string) (GetWorkerResponse, error
 	}
 
 	return t, nil
+
+}
+
+func checkFileEncoding(fileName string) (string, error) {
+	fmt.Printf("Checking encoding of file %s\n", fileName)
+
+	r, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
+	}
+
+	defer r.Close()
+
+	var header [100]byte
+	_, err = io.ReadFull(r, header[:])
+	if err != nil {
+		panic(err)
+	}
+
+	detector := chardet.NewTextDetector()
+	result, err := detector.DetectBest(header[:])
+
+	if err == nil {
+		return result.Charset, nil
+	} else {
+		return "unknown", err
+	}
 
 }

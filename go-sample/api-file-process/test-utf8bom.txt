@@ -1,0 +1,3 @@
+﻿PROJECTID,Num Factura/Boleta,,Cantidad,SKU,reference,Descripción artículo/serv.,uni,valor,Proveedor,Categoria Neutral Sugo,funit,Peso Bruto Unidad
+,B001-00056806,2021-04-01T00:00:00,1.00,1012A189.020-6.5,,GEL-NIMBUS 21 LITE-SMID GREY/ILLUSIO - TALLA 6.5,,,ASICS PERU SRL,Calzado,grs,730
+,B001-00056807,2021-04-01T00:00:00,1.00,P-50004,,MENTOS FRUTAS 20X20X6,,,G.W.YICHANG & CÍA. S.A.,Galletas y Golosinas,grs,20
